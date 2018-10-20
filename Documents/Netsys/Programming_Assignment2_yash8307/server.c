@@ -44,7 +44,7 @@ int main (int argc, char * argv[])
   ******************/
   bzero(&sin,sizeof(sin));                    //zero the struct
   sin.sin_family = AF_INET;                   //address family
-  sin.sin_port = htons(9111);        //htons() sets the port # to network byte order
+  sin.sin_port = htons(8007);        //htons() sets the port # to network byte order
   sin.sin_addr.s_addr = INADDR_ANY;           //supplies the IP address of the local machine
   //Causes the system to create a generic socket of type UDP (datagram)
   if ((sock = socket(AF_INET, SOCK_STREAM,0)) < 0)
@@ -100,13 +100,19 @@ int main (int argc, char * argv[])
 void function1(int func_var)
 {
   //local variable
-  char buffer[MAXBUFSIZE],buffer1[MAXBUFSIZE];             //a buffer to store our received message
+  char buffer[MAXBUFSIZE],buffer0[MAXBUFSIZE];             //a buffer to store our received message
   size_t var1;
   char full_message[MAXBUFSIZE];
   char* first;
   char* second;
   char* third;
+  char* postdata;
+  char* postdata1;
   int conn;
+  char* postdata2;
+  char* postdata3;
+  char* postdata4;
+
   int recv_bytes=0;
   FILE *pFile;
   int send_bytes=0;
@@ -120,6 +126,20 @@ void function1(int func_var)
   //printf("conection in func%d\n",conn);
   bzero(buffer,MAXBUFSIZE);
   recv_bytes = recv(conn, buffer,MAXBUFSIZE,0);
+  printf("length %d \n",recv_bytes);
+
+  int j=0,i=0;
+  for(i=0;i<recv_bytes;i++)
+  {
+    if(buffer[i] !='\0')
+    {
+      buffer0[j]=buffer[i];
+      j++;
+    }
+  }
+  buffer0[j]='\0';
+
+
   //printf("cn func%d\n",recv_bytes);
   if(recv_bytes < 0)
   {
@@ -148,9 +168,9 @@ void function1(int func_var)
     printf("Request is %s\n",second);
     printf("Protocol is %s\n",third);
   }
-  if(strncmp(first,"GET\0",4)==0)
+  if((strncmp(first,"GET\0",4)==0)||(strncmp(first,"POST\0",4)==0))
   {
-    printf("GET Recieved\n");
+      printf("GET Recieved\n");
   }
   else
   {//in case of bad command, 500 INTERNAL ERRORis sent to client and displayed on console
@@ -172,6 +192,50 @@ void function1(int func_var)
     close(conn);
     return;
   }
+  if(strncmp(first,"POST\0",5)==0)
+  {
+    int postdatalength=0;
+    bzero(buffer,sizeof(buffer));
+    //printf("\nPost wala data :\n%s\n",buffer0);//command recieved from client
+    postdata =strtok(buffer0,"\n");//saving protocol in third variable
+    //printf("\npost data isisisis :\n%s\n",postdata);//command recieved from client
+    postdata1 =strtok(NULL,"\n\n");//saving protocol in third variable
+    //printf("\npost data isisisis :\n%s\n",postdata1);//command recieved from client
+    postdata2 =strtok(NULL,"\r\n");//saving protocol in third variable
+    //printf("\npost data isisisis :\n%s\n",postdata2);//command recieved from client
+    postdata3 =strtok(NULL,"\r\n");//saving protocol in third variable
+    printf("\nPost Data is:\n%s\n",postdata3);//command recieved from client
+    char *content="text/html";
+    char header1[MAXBUFSIZE];
+    //printf("\n%ld\n",strlen(postdata3));
+    sprintf(header1,"HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %ld\r\n\r\n<html><body><pre><h1>%s</h1></pre>\r\n",content,strlen(postdata3),postdata3);
+    printf("\nPost Header: \n %s",header1);
+    char dir1[MAXBUFSIZE] = "/home/shah/Documents/Netsys/PA2/www/index.html";
+    pFile =fopen(dir1,"r");
+    if (pFile==NULL)
+    {
+      printf("\nERROR: Invalid File Request Recieved\n");
+      nbytes1 = send(conn,bad_request, strlen(bad_request), 0);
+      shutdown(conn, SHUT_RDWR);
+      close(conn);
+      return;
+    }
+    else
+    {
+      printf("Index File Created\n");
+    }
+    var1 = fread(buffer,1,MAXBUFSIZE,pFile);
+    //printf("file read is %ld\n",var1);
+    nbytes=write(conn, buffer, var1);
+    printf("Index File Sent");
+    //printf("sent file as %d\n",nbytes);
+    bzero(buffer,sizeof(buffer));
+    fclose(pFile);
+  }
+
+
+  if(strncmp(first,"GET\0",4)==0)
+  {
   char dir[MAXBUFSIZE] = "/home/shah/Documents/Netsys/PA2/www";
   strcat(dir,second);
   printf("\nRequest is %s\n",dir);
@@ -263,4 +327,5 @@ void function1(int func_var)
   fclose(pFile);
   shutdown(conn,SHUT_RDWR);
   close(conn);
+}
 }
