@@ -19,7 +19,7 @@
 #include <memory.h>
 #include <string.h>
 //macro defnition
-#define MAXBUFSIZE 102400
+#define MAXBUFSIZE 102400//buffer size
 #define MAXBUFSIZE1 10000
 #define LISTENQ 8 //maximum number of client connection
 char bad_request[] =
@@ -38,13 +38,18 @@ int main (int argc, char * argv[])
   socklen_t clilen;
   int child_thread;
   int num=0;
+  if (argc != 2)
+  {
+      printf ("USAGE:  <port>\n");
+      exit(1);
+  }
   /******************
   This code populates the sockaddr_in struct with
   the information about our socket
   ******************/
   bzero(&sin,sizeof(sin));                    //zero the struct
   sin.sin_family = AF_INET;                   //address family
-  sin.sin_port = htons(8007);        //htons() sets the port # to network byte order
+  sin.sin_port = htons(atoi(argv[1]));        //htons() sets the port # to network byte order
   sin.sin_addr.s_addr = INADDR_ANY;           //supplies the IP address of the local machine
   //Causes the system to create a generic socket of type UDP (datagram)
   if ((sock = socket(AF_INET, SOCK_STREAM,0)) < 0)
@@ -79,7 +84,7 @@ int main (int argc, char * argv[])
     {
       printf("%s\n","Accepted.\nReceiving ...");
       child_thread=fork();//forking threads
-      if(child_thread==0)
+      if(child_thread==0)//threads created
       {
         printf("Child Thread Created\n");
         //printf("conection %d\n",connfd[num]);
@@ -112,7 +117,6 @@ void function1(int func_var)
   char* postdata2;
   char* postdata3;
   char* postdata4;
-
   int recv_bytes=0;
   FILE *pFile;
   int send_bytes=0;
@@ -127,11 +131,11 @@ void function1(int func_var)
   bzero(buffer,MAXBUFSIZE);
   recv_bytes = recv(conn, buffer,MAXBUFSIZE,0);
   printf("length %d \n",recv_bytes);
-
   int j=0,i=0;
+  //for loop to eliminate the null parameters
   for(i=0;i<recv_bytes;i++)
   {
-    if(buffer[i] !='\0')
+    if(buffer[i] !='\0')//incase of a null parameter
     {
       buffer0[j]=buffer[i];
       j++;
@@ -144,14 +148,14 @@ void function1(int func_var)
   if(recv_bytes < 0)
   {
     printf("Error recieving I \n");
-    shutdown(conn,SHUT_RDWR);
+    shutdown(conn,SHUT_RDWR);//closing the connection
     close(conn);
     return;
   }
   else if(recv_bytes == 0)
   {
     printf("Error Recieving II \n");
-    shutdown(conn,SHUT_RDWR);
+    shutdown(conn,SHUT_RDWR);//closing the connection
     close(conn);
     return;
   }
@@ -159,8 +163,8 @@ void function1(int func_var)
   {
     printf("%s","String received from client:");
     printf("\n%s\n",buffer);//command recieved from client
-    strncpy(full_message,buffer,recv_bytes);
-    bzero(buffer,MAXBUFSIZE);
+    strncpy(full_message,buffer0,recv_bytes);
+    bzero(buffer,MAXBUFSIZE);//clearing the buffer
     first =strtok(full_message," \n");//saving command in first variable
     second =strtok(NULL," \n");//saving file type in second variable
     third =strtok(NULL," \n");//saving protocol in third variable
@@ -168,7 +172,8 @@ void function1(int func_var)
     printf("Request is %s\n",second);
     printf("Protocol is %s\n",third);
   }
-  if((strncmp(first,"GET\0",4)==0)||(strncmp(first,"POST\0",4)==0))
+  //incase of GET and POST REQUEST
+  if((strncmp(first,"GET\0",4)==0)||(strncmp(first,"POST\0",5)==0))
   {
       printf("GET Recieved\n");
   }
@@ -180,6 +185,7 @@ void function1(int func_var)
     close(conn);//close the listenning connection
     return;
   }
+  //HTTP request
   if((strncmp(third,"HTTP/1.1",8)==0) || (strncmp(third,"HTTP/1.0",8)==0))
   {
     printf("Received %s\n",third);
@@ -188,10 +194,11 @@ void function1(int func_var)
   {
     printf("\nERROR: Invalid Protocol Request Recieved\n");
     nbytes1 = send(conn,bad_request, strlen(bad_request), 0);
-    shutdown(conn, SHUT_RDWR);
+    shutdown(conn, SHUT_RDWR);//shutdown the port
     close(conn);
     return;
   }
+  //POST requested
   if(strncmp(first,"POST\0",5)==0)
   {
     int postdatalength=0;
@@ -227,9 +234,9 @@ void function1(int func_var)
     var1 = fread(buffer,1,MAXBUFSIZE,pFile);
     //printf("file read is %ld\n",var1);
     nbytes=write(conn, buffer, var1);
-    printf("Index File Sent");
+    printf("Index File Sent");//index file requested
     //printf("sent file as %d\n",nbytes);
-    bzero(buffer,sizeof(buffer));
+    bzero(buffer,sizeof(buffer));//buffer zero
     fclose(pFile);
   }
 
@@ -244,7 +251,7 @@ void function1(int func_var)
   {
     printf("\nERROR: Invalid File Request Recieved\n");
     nbytes1 = send(conn,bad_request, strlen(bad_request), 0);
-    shutdown(conn, SHUT_RDWR);
+    shutdown(conn, SHUT_RDWR);//shutdown the port
     close(conn);
     return;
   }
@@ -252,64 +259,67 @@ void function1(int func_var)
   {
     printf("File Created\n");
   }
+  //reading file into buffer
   fseek (pFile , 0 , SEEK_END);
   lSize = ftell (pFile);
   fseek (pFile , 0 , SEEK_SET);
   //printf("size of file sent is %ld\n",lSize);
   position = strrchr(second,'.');
+  //adding extension as per file type requested
   strcpy(extension,position);
   if (strcmp(extension,".html")==0)
   {
-    exten ="text/html";
+    exten ="text/html";//for html
     //printf("text is %s",exten);
   }
   else if(strcmp(extension,".txt")==0)
   {
-    exten ="text/plain";
+    exten ="text/plain";//for text
     //printf("plain is %s",exten);
   }
   else if(strcmp(extension,".png")==0)
   {
-    exten ="image/png";
+    exten ="image/png";//for image
     //printf("png is %s",exten);
   }
   else if(strcmp(extension,".gif")==0)
   {
-    exten ="image/gif";
+    exten ="image/gif";//for image/gif
     //printf("gif is %s",exten);
   }
   else if(strcmp(extension,".jpg")==0)
   {
-    exten ="image/jpg";
+    exten ="image/jpg";////for image
     //printf("jpg is %s",exten);
   }
   else if(strcmp(extension,".css")==0)
   {
-    exten ="text/css";
+    exten ="text/css";//for css
     //printf("css is %s",exten);
   }
   else if(strcmp(extension,".js")==0)
   {
-    exten ="application/javascript";
+    exten ="application/javascript";////for javascript
     //printf("java is %s",exten);
   }
   else
   {
     printf("\nERROR: Invalid Type Request Recieved\n");
     nbytes1 = send(conn,bad_request, strlen(bad_request), 0);
-    shutdown(conn, SHUT_RDWR);
+    shutdown(conn, SHUT_RDWR);//shutting down
     close(conn);
     return;
   }
+  //hsend eader
   sprintf(head,"HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %ld\r\n\r\n",exten,lSize);
   printf("Final Header is %s\n",head);
   //printf("con value is here %d\n",conn);
-  send_bytes=write(conn, head, strlen(head));
+  send_bytes=write(conn, head, strlen(head));//send header
   if (send_bytes<=0)
   {
     printf("Header not Sent\n");
     //printf("header is %d\n",send_bytes);
-    shutdown(conn,SHUT_RDWR);
+    shutdown(conn,SHUT_RDWR);//for shutting he connection
     close(conn);
     return;
   }
@@ -319,10 +329,10 @@ void function1(int func_var)
     //printf("header is %d\n",send_bytes);
   }
   bzero(head,sizeof(head));
-  var1 = fread(buffer,1,MAXBUFSIZE,pFile);
-  //printf("file read is %ld\n",var1);
-  nbytes=write(conn, buffer, var1);
-  //printf("sent file as %d\n",nbytes);
+  var1 = fread(buffer,1,MAXBUFSIZE,pFile);//read the requested file
+  printf("file read is %ld\n",var1);
+  nbytes=write(conn, buffer, var1);//write the file over connection to client
+  printf("sent file as %d\n",nbytes);
   bzero(buffer,sizeof(buffer));
   fclose(pFile);
   shutdown(conn,SHUT_RDWR);
