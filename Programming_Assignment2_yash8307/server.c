@@ -217,7 +217,7 @@ void function1(int func_var)
     //printf("\n%ld\n",strlen(postdata3));
     sprintf(header1,"HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %ld\r\n\r\n<html><body><pre><h1>%s</h1></pre>\r\n",content,strlen(postdata3),postdata3);
     printf("\nPost Header: \n %s",header1);
-    char dir1[MAXBUFSIZE] = "/home/shah/Documents/Netsys/PA2/www/index.html";
+    char dir1[MAXBUFSIZE] = "/home/shah/Documents/ECEN-5273/Programming_Assignment2_yash8307/www/index.html";
     pFile =fopen(dir1,"r");
     if (pFile==NULL)
     {
